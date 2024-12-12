@@ -96,7 +96,7 @@ module.exports = async (
 		customPackageJSON,
 		customBlockJSON,
 		example,
-		textdomain,
+		textdomain: textdomain || slug,
 		rootDirectory,
 	} );
 
