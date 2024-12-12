@@ -1,55 +1,69 @@
 /**
  * WordPress dependencies
  */
-import { useSelect, useDispatch } from '@wordpress/data';
-import {
-	useBlockEditingMode,
-	store as blockEditorStore,
-} from '@wordpress/block-editor';
+import { useSelect, useRegistry } from '@wordpress/data';
+import { store as blockEditorStore } from '@wordpress/block-editor';
 import { useEffect } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
-import { PAGE_CONTENT_BLOCK_TYPES } from './constants';
-
-function DisableBlock( { clientId } ) {
-	const isDescendentOfQueryLoop = useSelect(
-		( select ) => {
-			const { getBlockParentsByBlockName } = select( blockEditorStore );
-			return (
-				getBlockParentsByBlockName( clientId, 'core/query' ).length !==
-				0
-			);
-		},
-		[ clientId ]
-	);
-	const mode = isDescendentOfQueryLoop ? undefined : 'contentOnly';
-	const { setBlockEditingMode, unsetBlockEditingMode } =
-		useDispatch( blockEditorStore );
-	useEffect( () => {
-		if ( mode ) {
-			setBlockEditingMode( clientId, mode );
-			return () => {
-				unsetBlockEditingMode( clientId );
-			};
-		}
-	}, [ clientId, mode, setBlockEditingMode, unsetBlockEditingMode ] );
-}
+import usePostContentBlocks from './use-post-content-blocks';
 
 /**
  * Component that when rendered, makes it so that the site editor allows only
  * page content to be edited.
  */
 export default function DisableNonPageContentBlocks() {
-	useBlockEditingMode( 'disabled' );
-	const clientIds = useSelect( ( select ) => {
-		const { __experimentalGetGlobalBlocksByName } =
-			select( blockEditorStore );
-		return __experimentalGetGlobalBlocksByName( PAGE_CONTENT_BLOCK_TYPES );
+	const contentOnlyIds = usePostContentBlocks();
+	const templateParts = useSelect( ( select ) => {
+		const { getBlocksByName } = select( blockEditorStore );
+		return getBlocksByName( 'core/template-part' );
 	}, [] );
+	const disabledIds = useSelect(
+		( select ) => {
+			const { getBlockOrder } = select( blockEditorStore );
+			return templateParts.flatMap( ( clientId ) =>
+				getBlockOrder( clientId )
+			);
+		},
+		[ templateParts ]
+	);
 
-	return clientIds.map( ( clientId ) => {
-		return <DisableBlock key={ clientId } clientId={ clientId } />;
-	} );
+	const registry = useRegistry();
+
+	useEffect( () => {
+		const { setBlockEditingMode, unsetBlockEditingMode } =
+			registry.dispatch( blockEditorStore );
+
+		registry.batch( () => {
+			setBlockEditingMode( '', 'disabled' );
+			for ( const clientId of contentOnlyIds ) {
+				setBlockEditingMode( clientId, 'contentOnly' );
+			}
+			for ( const clientId of templateParts ) {
+				setBlockEditingMode( clientId, 'contentOnly' );
+			}
+			for ( const clientId of disabledIds ) {
+				setBlockEditingMode( clientId, 'disabled' );
+			}
+		} );
+
+		return () => {
+			registry.batch( () => {
+				unsetBlockEditingMode( '' );
+				for ( const clientId of contentOnlyIds ) {
+					unsetBlockEditingMode( clientId );
+				}
+				for ( const clientId of templateParts ) {
+					unsetBlockEditingMode( clientId );
+				}
+				for ( const clientId of disabledIds ) {
+					unsetBlockEditingMode( clientId );
+				}
+			} );
+		};
+	}, [ templateParts, contentOnlyIds, disabledIds, registry ] );
+
+	return null;
 }

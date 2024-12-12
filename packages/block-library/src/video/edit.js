@@ -1,12 +1,12 @@
 /**
  * External dependencies
  */
-import classnames from 'classnames';
+import clsx from 'clsx';
 
 /**
  * WordPress dependencies
  */
-import { getBlobByURL, isBlobURL } from '@wordpress/blob';
+import { isBlobURL } from '@wordpress/blob';
 import {
 	BaseControl,
 	Button,
@@ -24,12 +24,11 @@ import {
 	MediaUploadCheck,
 	MediaReplaceFlow,
 	useBlockProps,
-	store as blockEditorStore,
 } from '@wordpress/block-editor';
-import { useRef, useEffect } from '@wordpress/element';
+import { useRef, useEffect, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { useInstanceId } from '@wordpress/compose';
-import { useDispatch, useSelect } from '@wordpress/data';
+import { useDispatch } from '@wordpress/data';
 import { video as icon } from '@wordpress/icons';
 import { store as noticesStore } from '@wordpress/notices';
 
@@ -37,33 +36,17 @@ import { store as noticesStore } from '@wordpress/notices';
  * Internal dependencies
  */
 import { createUpgradedEmbedBlock } from '../embed/util';
+import { useUploadMediaFromBlobURL } from '../utils/hooks';
 import VideoCommonSettings from './edit-common-settings';
 import TracksEditor from './tracks-editor';
 import Tracks from './tracks';
 import { Caption } from '../utils/caption';
 
-// Much of this description is duplicated from MediaPlaceholder.
-const placeholder = ( content ) => {
-	return (
-		<Placeholder
-			className="block-editor-media-placeholder"
-			withIllustration={ true }
-			icon={ icon }
-			label={ __( 'Video' ) }
-			instructions={ __(
-				'Upload a video file, pick one from your media library, or add one with a URL.'
-			) }
-		>
-			{ content }
-		</Placeholder>
-	);
-};
-
 const ALLOWED_MEDIA_TYPES = [ 'video' ];
 const VIDEO_POSTER_ALLOWED_MEDIA_TYPES = [ 'image' ];
 
 function VideoEdit( {
-	isSelected,
+	isSelected: isSingleSelected,
 	attributes,
 	className,
 	setAttributes,
@@ -74,25 +57,14 @@ function VideoEdit( {
 	const videoPlayer = useRef();
 	const posterImageButton = useRef();
 	const { id, controls, poster, src, tracks } = attributes;
-	const isTemporaryVideo = ! id && isBlobURL( src );
-	const mediaUpload = useSelect(
-		( select ) => select( blockEditorStore ).getSettings().mediaUpload,
-		[]
-	);
+	const [ temporaryURL, setTemporaryURL ] = useState( attributes.blob );
 
-	useEffect( () => {
-		if ( ! id && isBlobURL( src ) ) {
-			const file = getBlobByURL( src );
-			if ( file ) {
-				mediaUpload( {
-					filesList: [ file ],
-					onFileChange: ( [ media ] ) => onSelectVideo( media ),
-					onError: onUploadError,
-					allowedTypes: ALLOWED_MEDIA_TYPES,
-				} );
-			}
-		}
-	}, [] );
+	useUploadMediaFromBlobURL( {
+		url: temporaryURL,
+		allowedTypes: ALLOWED_MEDIA_TYPES,
+		onChange: onSelectVideo,
+		onError: onUploadError,
+	} );
 
 	useEffect( () => {
 		// Placeholder may be rendered.
@@ -111,19 +83,28 @@ function VideoEdit( {
 				id: undefined,
 				poster: undefined,
 				caption: undefined,
+				blob: undefined,
 			} );
+			setTemporaryURL();
+			return;
+		}
+
+		if ( isBlobURL( media.url ) ) {
+			setTemporaryURL( media.url );
 			return;
 		}
 
 		// Sets the block's attribute and updates the edit component from the
 		// selected media.
 		setAttributes( {
+			blob: undefined,
 			src: media.url,
 			id: media.id,
 			poster:
 				media.image?.src !== media.icon ? media.image?.src : undefined,
 			caption: media.caption,
 		} );
+		setTemporaryURL();
 	}
 
 	function onSelectURL( newSrc ) {
@@ -136,7 +117,13 @@ function VideoEdit( {
 				onReplace( embedBlock );
 				return;
 			}
-			setAttributes( { src: newSrc, id: undefined, poster: undefined } );
+			setAttributes( {
+				blob: undefined,
+				src: newSrc,
+				id: undefined,
+				poster: undefined,
+			} );
+			setTemporaryURL();
 		}
 	}
 
@@ -145,15 +132,32 @@ function VideoEdit( {
 		createErrorNotice( message, { type: 'snackbar' } );
 	}
 
-	const classes = classnames( className, {
-		'is-transient': isTemporaryVideo,
+	// Much of this description is duplicated from MediaPlaceholder.
+	const placeholder = ( content ) => {
+		return (
+			<Placeholder
+				className="block-editor-media-placeholder"
+				withIllustration={ ! isSingleSelected }
+				icon={ icon }
+				label={ __( 'Video' ) }
+				instructions={ __(
+					'Drag and drop a video, upload, or choose from your library.'
+				) }
+			>
+				{ content }
+			</Placeholder>
+		);
+	};
+
+	const classes = clsx( className, {
+		'is-transient': !! temporaryURL,
 	} );
 
 	const blockProps = useBlockProps( {
 		className: classes,
 	} );
 
-	if ( ! src ) {
+	if ( ! src && ! temporaryURL ) {
 		return (
 			<div { ...blockProps }>
 				<MediaPlaceholder
@@ -185,25 +189,30 @@ function VideoEdit( {
 
 	return (
 		<>
-			<BlockControls>
-				<TracksEditor
-					tracks={ tracks }
-					onChange={ ( newTracks ) => {
-						setAttributes( { tracks: newTracks } );
-					} }
-				/>
-			</BlockControls>
-			<BlockControls group="other">
-				<MediaReplaceFlow
-					mediaId={ id }
-					mediaURL={ src }
-					allowedTypes={ ALLOWED_MEDIA_TYPES }
-					accept="video/*"
-					onSelect={ onSelectVideo }
-					onSelectURL={ onSelectURL }
-					onError={ onUploadError }
-				/>
-			</BlockControls>
+			{ isSingleSelected && (
+				<>
+					<BlockControls>
+						<TracksEditor
+							tracks={ tracks }
+							onChange={ ( newTracks ) => {
+								setAttributes( { tracks: newTracks } );
+							} }
+						/>
+					</BlockControls>
+					<BlockControls group="other">
+						<MediaReplaceFlow
+							mediaId={ id }
+							mediaURL={ src }
+							allowedTypes={ ALLOWED_MEDIA_TYPES }
+							accept="video/*"
+							onSelect={ onSelectVideo }
+							onSelectURL={ onSelectURL }
+							onError={ onUploadError }
+							onReset={ () => onSelectVideo( undefined ) }
+						/>
+					</BlockControls>
+				</>
+			) }
 			<InspectorControls>
 				<PanelBody title={ __( 'Settings' ) }>
 					<VideoCommonSettings
@@ -211,7 +220,7 @@ function VideoEdit( {
 						attributes={ attributes }
 					/>
 					<MediaUploadCheck>
-						<BaseControl className="editor-video-poster-control">
+						<div className="editor-video-poster-control">
 							<BaseControl.VisualLabel>
 								{ __( 'Poster image' ) }
 							</BaseControl.VisualLabel>
@@ -223,6 +232,7 @@ function VideoEdit( {
 								}
 								render={ ( { open } ) => (
 									<Button
+										__next40pxDefaultSize
 										variant="primary"
 										onClick={ open }
 										ref={ posterImageButton }
@@ -251,39 +261,41 @@ function VideoEdit( {
 							</p>
 							{ !! poster && (
 								<Button
+									__next40pxDefaultSize
 									onClick={ onRemovePoster }
 									variant="tertiary"
 								>
 									{ __( 'Remove' ) }
 								</Button>
 							) }
-						</BaseControl>
+						</div>
 					</MediaUploadCheck>
 				</PanelBody>
 			</InspectorControls>
 			<figure { ...blockProps }>
 				{ /*
-					Disable the video tag if the block is not selected
-					so the user clicking on it won't play the
-					video when the controls are enabled.
-				*/ }
-				<Disabled isDisabled={ ! isSelected }>
+                Disable the video tag if the block is not selected
+                so the user clicking on it won't play the
+                video when the controls are enabled.
+            */ }
+				<Disabled isDisabled={ ! isSingleSelected }>
 					<video
 						controls={ controls }
 						poster={ poster }
-						src={ src }
+						src={ src || temporaryURL }
 						ref={ videoPlayer }
 					>
 						<Tracks tracks={ tracks } />
 					</video>
 				</Disabled>
-				{ isTemporaryVideo && <Spinner /> }
+				{ !! temporaryURL && <Spinner /> }
 				<Caption
 					attributes={ attributes }
 					setAttributes={ setAttributes }
-					isSelected={ isSelected }
+					isSelected={ isSingleSelected }
 					insertBlocksAfter={ insertBlocksAfter }
 					label={ __( 'Video caption text' ) }
+					showToolbarButton={ isSingleSelected }
 				/>
 			</figure>
 		</>

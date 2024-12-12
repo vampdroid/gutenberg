@@ -16,7 +16,7 @@ const {
 	getWebpackArgs,
 	getWordPressSrcDirectory,
 	getWebpackEntryPoints,
-	getRenderPropPaths,
+	getPhpFilePaths,
 	hasBabelConfig,
 	hasCssnanoConfig,
 	hasJestConfig,
@@ -25,6 +25,11 @@ const {
 } = require( './config' );
 const { fromProjectRoot, fromConfigRoot, hasProjectFile } = require( './file' );
 const { getPackageProp, hasPackageProp } = require( './package' );
+const {
+	getBlockJsonModuleFields,
+	getBlockJsonScriptFields,
+} = require( './block-json' );
+const { PhpFilePathsPlugin } = require( './php-file-paths-plugin' );
 
 module.exports = {
 	fromProjectRoot,
@@ -39,7 +44,9 @@ module.exports = {
 	getWebpackArgs,
 	getWordPressSrcDirectory,
 	getWebpackEntryPoints,
-	getRenderPropPaths,
+	getPhpFilePaths,
+	getBlockJsonModuleFields,
+	getBlockJsonScriptFields,
 	hasArgInCLI,
 	hasBabelConfig,
 	hasCssnanoConfig,
@@ -49,5 +56,6 @@ module.exports = {
 	hasPostCSSConfig,
 	hasPrettierConfig,
 	hasProjectFile,
+	PhpFilePathsPlugin,
 	spawnScript,
 };

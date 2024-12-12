@@ -12,6 +12,7 @@ import { Component, isValidElement } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { __unstableStripHTML as stripHTML } from '@wordpress/dom';
 import { RichTextData } from '@wordpress/rich-text';
+import deprecated from '@wordpress/deprecated';
 
 /**
  * Internal dependencies
@@ -162,6 +163,10 @@ export function getBlockLabel( blockType, attributes, context = 'visual' ) {
 
 	if ( ! label ) {
 		return title;
+	}
+
+	if ( label.toPlainText ) {
+		return label.toPlainText();
 	}
 
 	// Strip any HTML (i.e. RichText formatting) before returning.
@@ -328,15 +333,53 @@ export function __experimentalSanitizeBlockAttributes( name, attributes ) {
  *
  * @return {string[]} The attribute names that have the provided role.
  */
-export function __experimentalGetBlockAttributesNamesByRole( name, role ) {
+export function getBlockAttributesNamesByRole( name, role ) {
 	const attributes = getBlockType( name )?.attributes;
-	if ( ! attributes ) return [];
+	if ( ! attributes ) {
+		return [];
+	}
 	const attributesNames = Object.keys( attributes );
-	if ( ! role ) return attributesNames;
-	return attributesNames.filter(
-		( attributeName ) =>
-			attributes[ attributeName ]?.__experimentalRole === role
-	);
+	if ( ! role ) {
+		return attributesNames;
+	}
+
+	return attributesNames.filter( ( attributeName ) => {
+		const attribute = attributes[ attributeName ];
+		if ( attribute?.role === role ) {
+			return true;
+		}
+		if ( attribute?.__experimentalRole === role ) {
+			deprecated( '__experimentalRole attribute', {
+				since: '6.7',
+				version: '6.8',
+				alternative: 'role attribute',
+				hint: `Check the block.json of the ${ name } block.`,
+			} );
+			return true;
+		}
+		return false;
+	} );
+}
+
+export const __experimentalGetBlockAttributesNamesByRole = ( ...args ) => {
+	deprecated( '__experimentalGetBlockAttributesNamesByRole', {
+		since: '6.7',
+		version: '6.8',
+		alternative: 'getBlockAttributesNamesByRole',
+	} );
+	return getBlockAttributesNamesByRole( ...args );
+};
+
+export function isContentBlock( name ) {
+	const attributes = getBlockType( name )?.attributes;
+
+	return !! Object.keys( attributes )?.some( ( attributeKey ) => {
+		const attribute = attributes[ attributeKey ];
+		return (
+			attribute?.role === 'content' ||
+			attribute?.__experimentalRole === 'content'
+		);
+	} );
 }
 
 /**

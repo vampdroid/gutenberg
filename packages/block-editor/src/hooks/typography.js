@@ -17,6 +17,7 @@ import {
 import { LINE_HEIGHT_SUPPORT_KEY } from './line-height';
 import { FONT_FAMILY_SUPPORT_KEY } from './font-family';
 import { FONT_SIZE_SUPPORT_KEY } from './font-size';
+import { TEXT_ALIGN_SUPPORT_KEY } from './text-align';
 import { cleanEmptyObject } from './utils';
 import { store as blockEditorStore } from '../store';
 
@@ -26,12 +27,12 @@ function omit( object, keys ) {
 	);
 }
 
-const LETTER_SPACING_SUPPORT_KEY = 'typography.__experimentalLetterSpacing';
-const TEXT_TRANSFORM_SUPPORT_KEY = 'typography.__experimentalTextTransform';
-const TEXT_DECORATION_SUPPORT_KEY = 'typography.__experimentalTextDecoration';
+const LETTER_SPACING_SUPPORT_KEY = 'typography.letterSpacing';
+const TEXT_TRANSFORM_SUPPORT_KEY = 'typography.textTransform';
+const TEXT_DECORATION_SUPPORT_KEY = 'typography.textDecoration';
 const TEXT_COLUMNS_SUPPORT_KEY = 'typography.textColumns';
-const FONT_STYLE_SUPPORT_KEY = 'typography.__experimentalFontStyle';
-const FONT_WEIGHT_SUPPORT_KEY = 'typography.__experimentalFontWeight';
+const FONT_STYLE_SUPPORT_KEY = 'typography.fontStyle';
+const FONT_WEIGHT_SUPPORT_KEY = 'typography.fontWeight';
 const WRITING_MODE_SUPPORT_KEY = 'typography.__experimentalWritingMode';
 export const TYPOGRAPHY_SUPPORT_KEY = 'typography';
 export const TYPOGRAPHY_SUPPORT_KEYS = [
@@ -40,6 +41,7 @@ export const TYPOGRAPHY_SUPPORT_KEYS = [
 	FONT_STYLE_SUPPORT_KEY,
 	FONT_WEIGHT_SUPPORT_KEY,
 	FONT_FAMILY_SUPPORT_KEY,
+	TEXT_ALIGN_SUPPORT_KEY,
 	TEXT_COLUMNS_SUPPORT_KEY,
 	TEXT_DECORATION_SUPPORT_KEY,
 	WRITING_MODE_SUPPORT_KEY,
@@ -131,7 +133,7 @@ export function TypographyPanel( { clientId, name, setAttributes, settings } ) {
 
 	const defaultControls = getBlockSupport( name, [
 		TYPOGRAPHY_SUPPORT_KEY,
-		'__experimentalDefaultControls',
+		'defaultControls',
 	] );
 
 	return (

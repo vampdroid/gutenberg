@@ -30,7 +30,8 @@ import {
 	isPatternFiltered,
 	allPatternsCategory,
 	myPatternsCategory,
-	PATTERN_TYPES,
+	starterPatternsCategory,
+	INSERTER_PATTERN_TYPES,
 } from './utils';
 
 const noop = () => {};
@@ -44,7 +45,8 @@ export function PatternCategoryPreviews( {
 } ) {
 	const [ allPatterns, , onClickPattern ] = usePatternsState(
 		onInsert,
-		rootClientId
+		rootClientId,
+		category?.name
 	);
 	const [ patternSyncFilter, setPatternSyncFilter ] = useState( 'all' );
 	const [ patternSourceFilter, setPatternSourceFilter ] = useState( 'all' );
@@ -73,7 +75,14 @@ export function PatternCategoryPreviews( {
 
 				if (
 					category.name === myPatternsCategory.name &&
-					pattern.type === PATTERN_TYPES.user
+					pattern.type === INSERTER_PATTERN_TYPES.user
+				) {
+					return true;
+				}
+
+				if (
+					category.name === starterPatternsCategory.name &&
+					pattern.blockTypes?.includes( 'core/post-content' )
 				) {
 					return true;
 				}
@@ -109,7 +118,6 @@ export function PatternCategoryPreviews( {
 	const { changePage } = pagingProps;
 
 	// Hide block pattern preview on unmount.
-	// eslint-disable-next-line react-hooks/exhaustive-deps
 	useEffect( () => () => onHover( null ), [] );
 
 	const onSetPatternSyncFilter = useCallback(
@@ -128,14 +136,19 @@ export function PatternCategoryPreviews( {
 	);
 
 	return (
-		<div className="block-editor-inserter__patterns-category-panel">
+		<>
 			<VStack
 				spacing={ 2 }
 				className="block-editor-inserter__patterns-category-panel-header"
 			>
 				<HStack>
 					<FlexBlock>
-						<Heading level={ 4 } as="div">
+						<Heading
+							className="block-editor-inserter__patterns-category-panel-title"
+							size={ 13 }
+							level={ 4 }
+							as="div"
+						>
 							{ category.label }
 						</Heading>
 					</FlexBlock>
@@ -157,23 +170,30 @@ export function PatternCategoryPreviews( {
 					</Text>
 				) }
 			</VStack>
-
 			{ currentCategoryPatterns.length > 0 && (
-				<BlockPatternsList
-					ref={ scrollContainerRef }
-					shownPatterns={ pagingProps.categoryPatternsAsyncList }
-					blockPatterns={ pagingProps.categoryPatterns }
-					onClickPattern={ onClickPattern }
-					onHover={ onHover }
-					label={ category.label }
-					orientation="vertical"
-					category={ category.name }
-					isDraggable
-					showTitlesAsTooltip={ showTitlesAsTooltip }
-					patternFilter={ patternSourceFilter }
-					pagingProps={ pagingProps }
-				/>
+				<>
+					<Text
+						size="12"
+						as="p"
+						className="block-editor-inserter__help-text"
+					>
+						{ __( 'Drag and drop patterns into the canvas.' ) }
+					</Text>
+					<BlockPatternsList
+						ref={ scrollContainerRef }
+						blockPatterns={ pagingProps.categoryPatterns }
+						onClickPattern={ onClickPattern }
+						onHover={ onHover }
+						label={ category.label }
+						orientation="vertical"
+						category={ category.name }
+						isDraggable
+						showTitlesAsTooltip={ showTitlesAsTooltip }
+						patternFilter={ patternSourceFilter }
+						pagingProps={ pagingProps }
+					/>
+				</>
 			) }
-		</div>
+		</>
 	);
 }

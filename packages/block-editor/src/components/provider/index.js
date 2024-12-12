@@ -46,7 +46,7 @@ export const ExperimentalBlockEditorProvider = withRegistryProvider(
 
 		return (
 			<SlotFillProvider passthrough>
-				<KeyboardShortcuts.Register />
+				{ ! settings?.isPreviewMode && <KeyboardShortcuts.Register /> }
 				<BlockRefsProvider>{ children }</BlockRefsProvider>
 			</SlotFillProvider>
 		);
@@ -55,10 +55,7 @@ export const ExperimentalBlockEditorProvider = withRegistryProvider(
 
 export const BlockEditorProvider = ( props ) => {
 	return (
-		<ExperimentalBlockEditorProvider
-			{ ...props }
-			stripExperimentalSettings={ true }
-		>
+		<ExperimentalBlockEditorProvider { ...props } stripExperimentalSettings>
 			{ props.children }
 		</ExperimentalBlockEditorProvider>
 	);

@@ -17,7 +17,7 @@ import DocumentTools from './document-tools';
 import SaveButton from '../save-button';
 import MoreMenu from '../more-menu';
 
-function Header( { setListViewToggleElement } ) {
+function Header() {
 	const isLargeViewport = useViewportMatch( 'medium' );
 	const blockToolbarRef = useRef();
 	const { hasFixedToolbar } = useSelect(
@@ -47,9 +47,7 @@ function Header( { setListViewToggleElement } ) {
 							{ __( 'Widgets' ) }
 						</VisuallyHidden>
 					) }
-					<DocumentTools
-						setListViewToggleElement={ setListViewToggleElement }
-					/>
+					<DocumentTools />
 					{ hasFixedToolbar && isLargeViewport && (
 						<>
 							<div className="selected-block-tools-wrapper">
@@ -63,8 +61,8 @@ function Header( { setListViewToggleElement } ) {
 					) }
 				</div>
 				<div className="edit-widgets-header__actions">
-					<SaveButton />
 					<PinnedItems.Slot scope="core/edit-widgets" />
+					<SaveButton />
 					<MoreMenu />
 				</div>
 			</div>

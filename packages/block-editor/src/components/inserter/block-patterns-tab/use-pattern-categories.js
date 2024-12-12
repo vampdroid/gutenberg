@@ -14,7 +14,8 @@ import {
 	isPatternFiltered,
 	allPatternsCategory,
 	myPatternsCategory,
-	PATTERN_TYPES,
+	starterPatternsCategory,
+	INSERTER_PATTERN_TYPES,
 } from './utils';
 
 function hasRegisteredCategory( pattern, allCategories ) {
@@ -68,8 +69,15 @@ export function usePatternCategories( rootClientId, sourceFilter = 'all' ) {
 			} );
 		}
 		if (
+			filteredPatterns.some( ( pattern ) =>
+				pattern.blockTypes?.includes( 'core/post-content' )
+			)
+		) {
+			categories.unshift( starterPatternsCategory );
+		}
+		if (
 			filteredPatterns.some(
-				( pattern ) => pattern.type === PATTERN_TYPES.user
+				( pattern ) => pattern.type === INSERTER_PATTERN_TYPES.user
 			)
 		) {
 			categories.unshift( myPatternsCategory );
